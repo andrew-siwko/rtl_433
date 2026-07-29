@@ -89,10 +89,13 @@ pipeline {
                 [pattern: '.git/**', type: 'EXCLUDE']
             ])
         }
-    }
-    post {
         success {
             build job: 'kubernetes-rtl-433-sender', wait: false
+        }
+        failure {
+            mail to: 'asiwko@siwko.org',
+                 subject: "rtl_433 Build #${env.BUILD_NUMBER} Failed",
+                 body: "Check console output at ${env.BUILD_URL}"   
         }
     }
 }
