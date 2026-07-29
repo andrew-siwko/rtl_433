@@ -25,7 +25,7 @@ pipeline {
                     id
                     sudo apt-get update -q -y
                     sudo apt-get install -q -y --no-install-recommends \
-                        cmake build-essential pkg-config \
+                        cmake build-essential pkg-config ccache \
                         libusb-1.0-0-dev librtlsdr-dev libsoapysdr-dev
                 '''
             }
@@ -33,7 +33,7 @@ pipeline {
 
         stage('Configure') {
             steps {
-                sh "cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=Release"
+                sh "cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache"
             }
         }
 
