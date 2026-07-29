@@ -19,17 +19,18 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    id
-                    sudo apt-get update -q -y
-                    sudo apt-get install -q -y --no-install-recommends \
-                        cmake build-essential pkg-config ccache \
-                        libusb-1.0-0-dev librtlsdr-dev libsoapysdr-dev
-                '''
-            }
-        }
+        // This itakes 20 seconds
+        // stage('Install Dependencies') {
+        //     steps {
+        //         sh '''
+        //             id
+        //             sudo apt-get update -q -y
+        //             sudo apt-get install -q -y --no-install-recommends \
+        //                 cmake build-essential pkg-config ccache \
+        //                 libusb-1.0-0-dev librtlsdr-dev libsoapysdr-dev
+        //         '''
+        //     }
+        // }
 
         stage('Configure') {
             steps {
