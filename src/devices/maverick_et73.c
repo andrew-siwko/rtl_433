@@ -76,8 +76,10 @@ static int maverick_et73_checksum_valid(uint8_t const *bytes)
 
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
-  int old_temp1_raw,temp1_raw, temp2_raw, row;
-    float old_temp1_c,temp1_c,temp1_c, temp2_c, temp1_f;
+    // int old_temp1_raw,temp1_raw, temp2_raw, row;
+    int row;
+    // float old_temp1_c,temp1_c,temp1_c, temp2_c, temp1_f;
+    float temp1_c, temp2_c, temp1_f;
     uint8_t *bytes;
     unsigned int device;
     data_t *data;
@@ -125,7 +127,7 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     // old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
     // temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0));
 
-    int u =               (bytes[1] << 4) | (bytes[2] >> 4);
+    int u = (bytes[1] << 4) | (bytes[2] >> 4);
     int temp1_signed = (u >= 2048) ? (u - 4096) : u;
     temp1_c = temp1_signed * 0.1f;
     temp1_f = temp1_c * 9.0f / 5.0f + 32.0f;
