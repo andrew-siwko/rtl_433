@@ -77,6 +77,13 @@ Layout appears to be:
 
 static float maverick_et73_temp1_c(int u)
 {
+    // I tested with a William-Sonoma remote thermometer which replrts a model of Maverick ET-73.
+    // The natural 12 bit signed range is -204.8C to +204.7C, but the device saturates at about 210.9C in practice.
+    // The readings were flipping negative at about 204.8C because legitimate positive values above that point are indistinguishable from negative values in the two's complement representation.
+    // I wanted to be able to get those extra positive readings, so I added a cutoff to decide which values are positive and which are negative.
+    // Anything over 307.2C is out of range and will be treated as negative.  Since the probe saturates at about 210.9C, this won't drop any reasonably positive readings.
+    // Testing was done with an ice bath and a toaster oven.  Temperatures in the range -3.9C to +210.9C were observed.
+    // I added deep freeze test which showed temperatures to -14.9C.
     int temp1_signed = (u >= MAVERICK_ET73_AMBIGUOUS_SPLIT) ? (u - 4096) : u;
     return temp1_signed * 0.1f;
 }
@@ -104,7 +111,7 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     data_t *data;
     char raw_str[16];
     int checksum_ok;
-    char *checksum_string= "OK";
+    char *checksum_string= "PASS";
 
     // The device transmits many rows, let's check for 3 matching.
     row = bitbuffer_find_repeated_row(bitbuffer, 3, 48);
@@ -141,13 +148,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 
     decoder_log_bitrow(decoder, 1, __func__, bytes, 48, "");
 
-    // Repack the nibbles to form a 12-bit field representing the 2's-complement temperatures,
-    //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
-    // old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
-    // temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0));
-
+    // This is a 12-bit signed two's complement value in 10ths of a degree C.
     int u = (bytes[1] << 4) | (bytes[2] >> 4);
-    int temp1_signed = (u >= 2048) ? (u - 4096) : u;
 
     temp1_c = maverick_et73_temp1_c(u);
     temp1_f = temp1_c * 9.0f / 5.0f + 32.0f;
