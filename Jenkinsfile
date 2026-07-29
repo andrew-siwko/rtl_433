@@ -20,6 +20,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
+                    id
                     sudo apt-get update -q -y
                     sudo apt-get install -q -y --no-install-recommends \
                         cmake build-essential pkg-config \
