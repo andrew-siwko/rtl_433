@@ -8,6 +8,8 @@ pipeline {
 
     environment {
         BUILD_DIR = 'build'
+        REGISTRY = 'kregistry.siwko.org:5000'
+        IMAGE = "${REGISTRY}/rtl_433"
     }
 
     stages {
@@ -57,6 +59,23 @@ pipeline {
                     cp ${BUILD_DIR}/src/rtl_433 /opt/rtl_433/bin/rtl_433
                 """
                 archiveArtifacts artifacts: "${BUILD_DIR}/src/rtl_433", fingerprint: true
+            }
+        }
+
+        stage('Build & Push Image') {
+            agent { label 'docker-builder' }
+            steps {
+                checkout scm
+                sh """
+                    docker build -t ${IMAGE}:${BUILD_NUMBER} -t ${IMAGE}:latest .
+                    docker push ${IMAGE}:${BUILD_NUMBER}
+                    docker push ${IMAGE}:latest
+                """
+            }
+            post {
+                always {
+                    cleanWs()
+                }
             }
         }
     }
