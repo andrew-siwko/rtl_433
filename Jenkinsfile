@@ -33,6 +33,7 @@ pipeline {
 
         stage('Configure') {
             steps {
+                sh "echo ${BUILD_NUMBER} > BUILD_NUMBER"
                 sh "cmake -B ${BUILD_DIR} -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=ccache"
             }
         }
