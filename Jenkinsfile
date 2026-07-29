@@ -49,6 +49,16 @@ pipeline {
                 """
             }
         }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                    mkdir -p /opt/rtl_433/bin
+                    cp ${BUILD_DIR}/src/rtl_433 /opt/rtl_433/bin/rtl_433
+                """
+                archiveArtifacts artifacts: "${BUILD_DIR}/src/rtl_433", fingerprint: true
+            }
+        }
     }
 
     post {
