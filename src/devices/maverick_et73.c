@@ -63,17 +63,23 @@ Layout appears to be:
  */
 static int maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
 {
-    int base      = (temp1_raw >= 0) ? 92 : 77;
-    int crossings = (temp1_raw >= 0) ? (temp1_raw / 256) : 0;
-    int expected  = base - temp1_raw - crossings;
+    int id = bytes[0];
+    int base;
+    int crossings;
 
-    // C's % can return a negative result for a negative dividend --
-    // normalize into 0..255 before comparing.
+    if (temp1_raw >= 0) {
+        base      = 439 - id;   // was: 92, now id-adjusted (verified against id=92 and id=56)
+        crossings = temp1_raw / 256;
+    } else {
+        base      = 439 - id - 315; // untested for this id -- see note below
+        crossings = 0;
+    }
+
+    int expected = base - temp1_raw - crossings;
     expected = ((expected % 256) + 256) % 256;
 
     return (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected);
 }
-
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
   int temp1_raw, temp2_raw, row;
