@@ -88,7 +88,7 @@ static int maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
 }
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
-  int temp1_raw, temp2_raw, row;
+  int old_temp1_raw,temp1_raw, temp2_raw, row;
     float temp1_c, temp2_c, temp1_f;
     uint8_t *bytes;
     unsigned int device;
@@ -134,8 +134,10 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 
     // Repack the nibbles to form a 12-bit field representing the 2's-complement temperatures,
     //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
-    temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
-    checksum_ok = maverick_et73_checksum_valid(bytes, temp1_raw);
+    old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
+    temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); 
+    
+    checksum_ok = maverick_et73_checksum_valid(bytes, old_temp1_raw);
     if (checksum_ok == 0) {
         checksum_string = "FAIL";
     }
