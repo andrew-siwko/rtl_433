@@ -58,6 +58,27 @@ if(NOT GIT_COMMIT AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/CHANGELOG.md")
 endif()
 
 ########################################################################
+# Add CI build number to the version info
+########################################################################
+# git_describe() fails on a fork with no tags, leaving "...-NOTFOUND"
+# (which CMake treats as false) -- fall back to branch + short commit.
+if(GIT_COMMIT AND NOT GIT_VERSION)
+    string(SUBSTRING "${GIT_COMMIT}" 0 7 GIT_COMMIT_SHORT)
+    set(GIT_VERSION "${GIT_BRANCH}-${GIT_COMMIT_SHORT}")
+endif()
+# BUILD_NUMBER file is written by the Jenkins Configure stage; the env
+# var covers builds where cmake runs before/without the file.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/BUILD_NUMBER")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/BUILD_NUMBER" CI_BUILD_NUMBER LIMIT_COUNT 1)
+elseif(DEFINED ENV{BUILD_NUMBER})
+    set(CI_BUILD_NUMBER $ENV{BUILD_NUMBER})
+endif()
+if(CI_BUILD_NUMBER)
+    set(GIT_VERSION "${GIT_VERSION}-b${CI_BUILD_NUMBER}")
+    message(STATUS "Using CI build number: ${CI_BUILD_NUMBER}")
+endif()
+
+########################################################################
 # Write version info to header file
 ########################################################################
 configure_file(${CMAKE_CURRENT_LIST_DIR}/include/version.h.in
