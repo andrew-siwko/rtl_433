@@ -70,13 +70,19 @@ static int maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
     if (temp1_raw >= 0) {
         base      = 439 - id;   // was: 92, now id-adjusted (verified against id=92 and id=56)
         crossings = temp1_raw / 256;
+        fprintf(stderr, "if (base:%d,crossings:%d)\n", base, crossings);        
     } else {
         base      = 439 - id - 315; // untested for this id -- see note below
         crossings = 0;
+        fprintf(stderr, "else (base:%d,crossings:%d)\n", base, crossings);        
     }
 
     int expected = base - temp1_raw - crossings;
+    fprintf(stderr, "expected: %d\n", expected);
     expected = ((expected % 256) + 256) % 256;
+    fprintf(stderr, "expected: %d\n", expected);
+    fprintf(stderr, "bytes[4]: %02x, bytes[5]: %02x\n", bytes[4], bytes[5]);
+    fprintf(stderr, "checksum: %s\n", (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected) ? "PASS" : "FAIL");
 
     return (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected);
 }
