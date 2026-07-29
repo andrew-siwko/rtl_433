@@ -70,11 +70,11 @@ static int maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
     if (temp1_raw >= 0) {
         base      = 439 - id;   // was: 92, now id-adjusted (verified against id=92 and id=56)
         crossings = temp1_raw / 256;
-        fprintf(stderr, "if (base:%d,crossings:%d)\n", base, crossings);        
+        fprintf(stderr, "if (base:%d,crossings:%d)\n", base, crossings);
     } else {
         base      = 439 - id - 315; // untested for this id -- see note below
         crossings = 0;
-        fprintf(stderr, "else (base:%d,crossings:%d)\n", base, crossings);        
+        fprintf(stderr, "else (base:%d,crossings:%d)\n", base, crossings);
     }
 
     int expected = base - temp1_raw - crossings;
@@ -135,8 +135,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     // Repack the nibbles to form a 12-bit field representing the 2's-complement temperatures,
     //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
     old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
-    temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); 
-    
+    temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0));
+
     checksum_ok = maverick_et73_checksum_valid(bytes, old_temp1_raw);
     if (checksum_ok == 0) {
         checksum_string = "FAIL";
