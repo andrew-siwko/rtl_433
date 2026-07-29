@@ -61,6 +61,25 @@ Layout appears to be:
  *       BASE = 77, crossings = 0                  for temp1_raw <  0
  *       (negative-branch wraparound has not been tested below about -18C)
  */
+// The 12-bit raw temperature field is ambiguous once it exceeds 2047:
+// bit pattern 0x800-0xFFF means EITHER a large positive value (204.8C to
+// 409.5C, unsigned) OR a small-magnitude negative value (-204.8C to
+// -0.1C, signed two's complement) -- both interpretations produce
+// identical bits, so no purely bit-level rule can distinguish them.
+//
+// This specific probe's hardware saturates around 210.9C in practice
+// (measured directly during the earlier oven test), so genuine "hot"
+// readings never need u much past ~2110. Genuine "cold" readings (ice
+// bath, freezer) stay well below the top of the range in practice --
+// anything colder than -102.4C is implausible for a BBQ/meat probe.
+// Split the difference at the midpoint of that gap.
+#define MAVERICK_ET73_AMBIGUOUS_SPLIT 3072  // = 0xC00, i.e. -102.4C / +307.2C
+
+static float maverick_et73_temp1_c(int u)
+{
+    int temp1_signed = (u >= MAVERICK_ET73_AMBIGUOUS_SPLIT) ? (u - 4096) : u;
+    return temp1_signed * 0.1f;
+}
 static int maverick_et73_checksum_valid(uint8_t const *bytes)
 {
     int u = (bytes[1] << 4) | (bytes[2] >> 4); // unsigned 12-bit temp1 (temp*10, two's complement)
@@ -129,7 +148,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 
     int u = (bytes[1] << 4) | (bytes[2] >> 4);
     int temp1_signed = (u >= 2048) ? (u - 4096) : u;
-    temp1_c = temp1_signed * 0.1f;
+
+    temp1_c = maverick_et73_temp1_c(u);
     temp1_f = temp1_c * 9.0f / 5.0f + 32.0f;
 
     checksum_ok = maverick_et73_checksum_valid(bytes);
@@ -175,7 +195,8 @@ static char const *const output_fields[] = {
         "id",
         "temperature_1_F",
         "temperature_1_C",
-        "temperature_2_C",
+        // This is never used on my device
+        // "temperature_2_C",
         "checksum",
         "raw_msg",
         NULL,
