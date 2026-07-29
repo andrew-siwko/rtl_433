@@ -46,10 +46,11 @@ Layout appears to be:
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
   int temp1_raw, temp2_raw, row;
-    float temp1_c, temp2_c;
+    float temp1_c, temp2_c, temp1_f;
     uint8_t *bytes;
     unsigned int device;
     data_t *data;
+    char raw_str[16];
 
     // The device transmits many rows, let's check for 3 matching.
     row = bitbuffer_find_repeated_row(bitbuffer, 3, 48);
@@ -74,17 +75,21 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
     temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
     temp1_c   = (temp1_raw >> 4) * 0.1f;
+    temp1_f   = temp1_c * 9.0f / 5.0f + 32.0f;
     temp2_raw = (int16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
     temp2_c   = (temp2_raw >> 4) * 0.1f;
 
     /* clang-format off */
     data = data_make(
-            "model",            "",                 DATA_STRING, "Maverick-ET73",
-            "id",               "Random Id",        DATA_INT, device,
-            "temperature_1_C",  "Temperature 1",    DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
-            "temperature_2_C",  "Temperature 2",    DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
+            "model",            "",                        DATA_STRING, "Maverick-ET73",
+            "id",               "Random Id",               DATA_INT, device,
+            "temperature_1_F",  "Temperature 1 Computed",  DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_f,
+            "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
+            "temperature_2_C",  "Temperature 2",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
             NULL);
     /* clang-format on */
+
+    data = data_hex(data, "raw_msg", "Raw Message", NULL, bytes, 6, raw_str);
 
     decoder_output_data(decoder, data);
     return 1;
@@ -93,8 +98,10 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 static char const *const output_fields[] = {
         "model",
         "id",
+        "temperature_1_F",
         "temperature_1_C",
         "temperature_2_C",
+        "raw_msg",
         NULL,
 };
 
