@@ -84,7 +84,10 @@ pipeline {
 
     post {
         always {
-            cleanWs(patterns: [[pattern: "${BUILD_DIR}/**", type: 'EXCLUDE']])
+            cleanWs(patterns: [
+                [pattern: "${BUILD_DIR}/**", type: 'EXCLUDE'],
+                [pattern: '.git/**', type: 'EXCLUDE']
+            ])
         }
     }
 }
