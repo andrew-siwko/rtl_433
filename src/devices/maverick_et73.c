@@ -97,7 +97,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     fprintf(stderr, "%02x ", bytes[4]);
     fprintf(stderr, "%02x", bytes[5]);
     fprintf(stderr, "\n");
-
+    fflush(stderr);
+    
     decoder_output_data(decoder, data);
     return 1;
 }
