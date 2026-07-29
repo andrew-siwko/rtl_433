@@ -84,7 +84,7 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            cleanWs(patterns: [[pattern: "${BUILD_DIR}/**", type: 'EXCLUDE']])
         }
     }
 }
