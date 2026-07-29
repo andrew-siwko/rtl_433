@@ -104,17 +104,18 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
         return DECODE_ABORT_EARLY; // reduce false positives
     }
 
-    if (bitbuffer->bits_per_row[row] != 48)
+    if (bitbuffer->bits_per_row[row] != 48) 
+    {
         fprintf(stderr, "%02x ", bytes[0]);
         fprintf(stderr, "%03x ", (bytes[1] << 8 | (bytes[2] & 0xf0)));
         fprintf(stderr, "%03x ", (((bytes[2] & 0x0f) << 12) | bytes[3] << 4));
         fprintf(stderr, "%02x ", bytes[4]);
         fprintf(stderr, "%02x ", bytes[5]);
-        fprintf(stderr, "ABORT: bits !+ 48 %d", bitbuffer->bits_per_row[row]);
+        fprintf(stderr, "ABORT: bits != 48 %d", bitbuffer->bits_per_row[row]);
         fprintf(stderr, "\n");
         fflush(stderr);
         return DECODE_ABORT_LENGTH;
-
+    }
     device = bytes[0];
 
     decoder_log_bitrow(decoder, 1, __func__, bytes, 48, "");
