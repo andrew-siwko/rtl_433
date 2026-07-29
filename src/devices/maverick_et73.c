@@ -65,39 +65,15 @@ static int maverick_et73_checksum_valid(uint8_t const *bytes)
 {
     int u = (bytes[1] << 4) | (bytes[2] >> 4); // unsigned 12-bit temp1 (temp*10, two's complement)
     int expected = 440 - bytes[0] - u - (u / 256);
-    fprintf(stderr, "u: %02x\n", u);
-    fprintf(stderr, "expected: %d\n", expected);
-    fprintf(stderr, "bytes[4]: %02x, bytes[5]: %02x\n", bytes[4], bytes[5]);
+    // fprintf(stderr, "u: %02x\n", u);
+    // fprintf(stderr, "expected: %d\n", expected);
+    // fprintf(stderr, "bytes[4]: %02x, bytes[5]: %02x\n", bytes[4], bytes[5]);
     expected = ((expected % 256) + 256) % 256;
-    fprintf(stderr, "expected: %d\n", expected);
-    fprintf(stderr, "checksum: %s\n", (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected) ? "PASS" : "FAIL");
+    // fprintf(stderr, "expected: %d\n", expected);
+    // fprintf(stderr, "checksum: %s\n", (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected) ? "PASS" : "FAIL");
     return (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected);
 }
-static int old_maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
-{
-    int id = bytes[0];
-    int base;
-    int crossings;
 
-    if (temp1_raw >= 0) {
-        base      = 439 - id;   // was: 92, now id-adjusted (verified against id=92 and id=56)
-        crossings = temp1_raw / 256;
-        fprintf(stderr, "if (base:%d,crossings:%d)\n", base, crossings);
-    } else {
-        base      = 439 - id - 315; // untested for this id -- see note below
-        crossings = 0;
-        fprintf(stderr, "else (base:%d,crossings:%d)\n", base, crossings);
-    }
-
-    int expected = base - temp1_raw - crossings;
-    fprintf(stderr, "expected: %d\n", expected);
-    expected = ((expected % 256) + 256) % 256;
-    fprintf(stderr, "expected: %d\n", expected);
-    fprintf(stderr, "bytes[4]: %02x, bytes[5]: %02x\n", bytes[4], bytes[5]);
-    fprintf(stderr, "checksum: %s\n", (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected) ? "PASS" : "FAIL");
-
-    return (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected);
-}
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
   int old_temp1_raw,temp1_raw, temp2_raw, row;
@@ -146,27 +122,31 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 
     // Repack the nibbles to form a 12-bit field representing the 2's-complement temperatures,
     //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
-    old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
-    temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0));
+    // old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
+    // temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0));
+
+    int u =               (bytes[1] << 4) | (bytes[2] >> 4);
+    int temp1_signed = (u >= 2048) ? (u - 4096) : u;
+    temp1_c = temp1_signed * 0.1f;
+    temp1_f = temp1_c * 9.0f / 5.0f + 32.0f;
 
     checksum_ok = maverick_et73_checksum_valid(bytes);
     if (checksum_ok == 0) {
         checksum_string = "FAIL";
     }
 
-    temp1_c   = (temp1_raw >> 4) * 0.1f;
-    old_temp1_c   = (old_temp1_raw >> 4) * 0.1f;
-    temp1_f   = temp1_c * 9.0f / 5.0f + 32.0f;
-    temp2_raw = (uint16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
-    temp2_c   = (temp2_raw >> 4) * 0.1f;
+    // temp1_c   = (temp1_raw >> 4) * 0.1f;
+    // old_temp1_c   = (old_temp1_raw >> 4) * 0.1f;
+    // temp1_f   = temp1_c * 9.0f / 5.0f + 32.0f;
+    // temp2_raw = (uint16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
+    // temp2_c   = (temp2_raw >> 4) * 0.1f;
 
     /* clang-format off */
     data = data_make(
             "model",            "",                        DATA_STRING, "Maverick-ET73",
             "id",               "Random Id",               DATA_INT, device,
             "temperature_1_F",  "Temperature 1 Computed",  DATA_FORMAT, "%.1f F", DATA_DOUBLE, temp1_f,
-            "temperature_1_CU",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
-            "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, old_temp1_c,
+            "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
             "temperature_2_C",  "Temperature 2",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
             "checksum",         "Checksum",                DATA_STRING, checksum_string,
             NULL);
@@ -192,7 +172,6 @@ static char const *const output_fields[] = {
         "id",
         "temperature_1_F",
         "temperature_1_C",
-        "temperature_1_CU",
         "temperature_2_C",
         "checksum",
         "raw_msg",
