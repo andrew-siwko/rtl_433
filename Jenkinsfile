@@ -90,4 +90,9 @@ pipeline {
             ])
         }
     }
+    post {
+        success {
+            build job: 'kubernetes-rtl-433-sender', wait: false
+        }
+    }
 }
