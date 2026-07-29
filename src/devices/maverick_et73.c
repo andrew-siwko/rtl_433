@@ -79,7 +79,7 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     // int old_temp1_raw,temp1_raw, temp2_raw, row;
     int row;
     // float old_temp1_c,temp1_c,temp1_c, temp2_c, temp1_f;
-    float temp1_c, temp2_c, temp1_f;
+    float temp1_c, temp1_f;
     uint8_t *bytes;
     unsigned int device;
     data_t *data;
@@ -149,7 +149,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
             "id",               "Random Id",               DATA_INT, device,
             "temperature_1_F",  "Temperature 1 Computed",  DATA_FORMAT, "%.1f F", DATA_DOUBLE, temp1_f,
             "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
-            "temperature_2_C",  "Temperature 2",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
+            // This is never used on my device
+            // "temperature_2_C",  "Temperature 2",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
             "checksum",         "Checksum",                DATA_STRING, checksum_string,
             NULL);
     /* clang-format on */
