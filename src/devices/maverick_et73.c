@@ -101,7 +101,7 @@ static int old_maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
   int old_temp1_raw,temp1_raw, temp2_raw, row;
-    float unsigned_temp1_c,temp1_c,temp1_c, temp2_c, temp1_f;
+    float old_temp1_c,temp1_c,temp1_c, temp2_c, temp1_f;
     uint8_t *bytes;
     unsigned int device;
     data_t *data;
@@ -155,7 +155,7 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     }
 
     temp1_c   = (temp1_raw >> 4) * 0.1f;
-    unsigned_temp1_c   = (old_temp1_raw >> 4) * 0.1f;
+    old_temp1_c   = (old_temp1_raw >> 4) * 0.1f;
     temp1_f   = temp1_c * 9.0f / 5.0f + 32.0f;
     temp2_raw = (uint16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
     temp2_c   = (temp2_raw >> 4) * 0.1f;
@@ -165,8 +165,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
             "model",            "",                        DATA_STRING, "Maverick-ET73",
             "id",               "Random Id",               DATA_INT, device,
             "temperature_1_F",  "Temperature 1 Computed",  DATA_FORMAT, "%.1f F", DATA_DOUBLE, temp1_f,
-            "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
-            "temperature_1_CU",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, unsigned_temp1_c,
+            "temperature_1_CU",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
+            "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, old_temp1_c,
             "temperature_2_C",  "Temperature 2",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
             "checksum",         "Checksum",                DATA_STRING, checksum_string,
             NULL);
