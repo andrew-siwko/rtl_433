@@ -61,7 +61,19 @@ Layout appears to be:
  *       BASE = 77, crossings = 0                  for temp1_raw <  0
  *       (negative-branch wraparound has not been tested below about -18C)
  */
-static int maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
+static int maverick_et73_checksum_valid(uint8_t const *bytes)
+{
+    int u = (bytes[1] << 4) | (bytes[2] >> 4); // unsigned 12-bit temp1 (temp*10, two's complement)
+    int expected = 440 - bytes[0] - u - (u / 256);
+    fprintf(stderr, "u: %02x\n", u);
+    fprintf(stderr, "expected: %d\n", expected);
+    fprintf(stderr, "bytes[4]: %02x, bytes[5]: %02x\n", bytes[4], bytes[5]);
+    expected = ((expected % 256) + 256) % 256;
+    fprintf(stderr, "expected: %d\n", expected);
+    fprintf(stderr, "checksum: %s\n", (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected) ? "PASS" : "FAIL");
+    return (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected);
+}
+static int old_maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
 {
     int id = bytes[0];
     int base;
@@ -137,7 +149,7 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     old_temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
     temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0));
 
-    checksum_ok = maverick_et73_checksum_valid(bytes, old_temp1_raw);
+    checksum_ok = maverick_et73_checksum_valid(bytes);
     if (checksum_ok == 0) {
         checksum_string = "FAIL";
     }
