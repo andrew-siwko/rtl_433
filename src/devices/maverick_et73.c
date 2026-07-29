@@ -73,10 +73,10 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 
     // Repack the nibbles to form a 12-bit field representing the 2's-complement temperatures,
     //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
-    temp1_raw = (int16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
+    temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
     temp1_c   = (temp1_raw >> 4) * 0.1f;
     temp1_f   = temp1_c * 9.0f / 5.0f + 32.0f;
-    temp2_raw = (int16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
+    temp2_raw = (uint16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
     temp2_c   = (temp2_raw >> 4) * 0.1f;
 
     /* clang-format off */
