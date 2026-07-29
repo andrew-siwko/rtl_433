@@ -30,6 +30,15 @@ get_git_head_revision(GIT_REFSPEC GIT_COMMIT)
 if(GIT_COMMIT) # is a git repo
     # shorten branch spec
     string(REGEX REPLACE ".*/" "" GIT_BRANCH "${GIT_REFSPEC}")
+    # CI runners (e.g. Jenkins' "git checkout -f <sha>") leave a detached
+    # HEAD, so GIT_REFSPEC/GIT_BRANCH above come back empty -- the git
+    # plugin still exports the real branch as an env var, so prefer that.
+    if(NOT GIT_BRANCH AND DEFINED ENV{GIT_BRANCH})
+        string(REGEX REPLACE ".*/" "" GIT_BRANCH "$ENV{GIT_BRANCH}")
+    endif()
+    if(NOT GIT_BRANCH)
+        set(GIT_BRANCH "detached")
+    endif()
     # use lightweight (non-annotated) tags
     git_describe(GIT_VERSION "--tags" "--exclude=nightly")
     git_timestamp(GIT_TIMESTAMP)
