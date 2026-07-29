@@ -59,6 +59,7 @@ pipeline {
                     cp ${BUILD_DIR}/src/rtl_433 /opt/rtl_433/bin/rtl_433
                 """
                 archiveArtifacts artifacts: "${BUILD_DIR}/src/rtl_433", fingerprint: true
+                stash name: 'rtl433-bin', includes: "${BUILD_DIR}/src/rtl_433"
             }
         }
 
@@ -66,10 +67,11 @@ pipeline {
             agent { label 'docker-builder' }
             steps {
                 checkout scm
+                unstash 'rtl433-bin'
                 sh """
-                    docker build -t ${IMAGE}:${BUILD_NUMBER} -t ${IMAGE}:latest .
-                    docker push ${IMAGE}:${BUILD_NUMBER}
-                    docker push ${IMAGE}:latest
+                    cp ${BUILD_DIR}/src/rtl_433 rtl_433
+                    docker buildx build --platform linux/arm64 --push \
+                        -t ${IMAGE}:${BUILD_NUMBER} -t ${IMAGE}:latest .
                 """
             }
             post {
