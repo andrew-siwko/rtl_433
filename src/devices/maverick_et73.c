@@ -43,6 +43,37 @@ Layout appears to be:
 
 #include "decoder.h"
 
+/**
+ * Validate the Maverick ET-73 "unknown, checksum maybe?" bytes.
+ * This is reverse-engineered from live logging (temperature sweeps from
+ * -3.3C to +210.9C), not from any spec -- treat as a strong heuristic,
+ * not a guaranteed-correct algorithm.
+ *
+ * Call this AFTER temp1_raw has been computed (using whatever sign
+ * handling your decoder now uses past the 204.8C rollover point).
+ *
+ * Observed relationship:
+ *   bytes[4] is constant (0x48 on the unit tested -- may be
+ *            session/device-specific; verify before relying on it
+ *            across different transmitter IDs)
+ *   bytes[5] = (BASE - temp1_raw - crossings) mod 256
+ *       BASE = 92, crossings = temp1_raw / 256   for temp1_raw >= 0
+ *       BASE = 77, crossings = 0                  for temp1_raw <  0
+ *       (negative-branch wraparound has not been tested below about -18C)
+ */
+static int maverick_et73_checksum_valid(uint8_t const *bytes, int temp1_raw)
+{
+    int base      = (temp1_raw >= 0) ? 92 : 77;
+    int crossings = (temp1_raw >= 0) ? (temp1_raw / 256) : 0;
+    int expected  = base - temp1_raw - crossings;
+
+    // C's % can return a negative result for a negative dividend --
+    // normalize into 0..255 before comparing.
+    expected = ((expected % 256) + 256) % 256;
+
+    return (bytes[4] == 0x48) && (bytes[5] == (uint8_t)expected);
+}
+
 static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
 {
   int temp1_raw, temp2_raw, row;
@@ -51,6 +82,8 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     unsigned int device;
     data_t *data;
     char raw_str[16];
+    int checksum_ok;
+    char *checksum_string= "OK";
 
     // The device transmits many rows, let's check for 3 matching.
     row = bitbuffer_find_repeated_row(bitbuffer, 3, 48);
@@ -59,12 +92,27 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     }
 
     bytes = bitbuffer->bb[row];
-    if ((!bytes[0] && !bytes[1] && !bytes[2] && !bytes[3])
-            || (bytes[0] == 0xFF && bytes[1] == 0xFF && bytes[2] == 0xFF && bytes[3] == 0xFF))  {
+    if ((!bytes[0] && !bytes[1] && !bytes[2] && !bytes[3]) || (bytes[0] == 0xFF && bytes[1] == 0xFF && bytes[2] == 0xFF && bytes[3] == 0xFF))  {
+        fprintf(stderr, "%02x ", bytes[0]);
+        fprintf(stderr, "%03x ", (bytes[1] << 8 | (bytes[2] & 0xf0)));
+        fprintf(stderr, "%03x ", (((bytes[2] & 0x0f) << 12) | bytes[3] << 4));
+        fprintf(stderr, "%02x ", bytes[4]);
+        fprintf(stderr, "%02x ", bytes[5]);
+        fprintf(stderr, "ABORT: all zeros or all ones");
+        fprintf(stderr, "\n");
+        fflush(stderr);
         return DECODE_ABORT_EARLY; // reduce false positives
     }
 
     if (bitbuffer->bits_per_row[row] != 48)
+        fprintf(stderr, "%02x ", bytes[0]);
+        fprintf(stderr, "%03x ", (bytes[1] << 8 | (bytes[2] & 0xf0)));
+        fprintf(stderr, "%03x ", (((bytes[2] & 0x0f) << 12) | bytes[3] << 4));
+        fprintf(stderr, "%02x ", bytes[4]);
+        fprintf(stderr, "%02x ", bytes[5]);
+        fprintf(stderr, "ABORT: bits !+ 48 %d", bitbuffer->bits_per_row[row]);
+        fprintf(stderr, "\n");
+        fflush(stderr);
         return DECODE_ABORT_LENGTH;
 
     device = bytes[0];
@@ -74,6 +122,11 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
     // Repack the nibbles to form a 12-bit field representing the 2's-complement temperatures,
     //   then right shift by 4 to sign-extend the 12-bit field to a 16-bit integer for float conversion
     temp1_raw = (uint16_t)(bytes[1] << 8 | (bytes[2] & 0xf0)); // uses sign-extend
+    checksum_ok = maverick_et73_checksum_valid(bytes, temp1_raw);
+    if (checksum_ok == 0) {
+        checksum_string = "FAIL";
+    }
+
     temp1_c   = (temp1_raw >> 4) * 0.1f;
     temp1_f   = temp1_c * 9.0f / 5.0f + 32.0f;
     temp2_raw = (uint16_t)(((bytes[2] & 0x0f) << 12) | bytes[3] << 4); // uses sign-extend
@@ -86,6 +139,7 @@ static int maverick_et73_decode(r_device *decoder, bitbuffer_t *bitbuffer)
             "temperature_1_F",  "Temperature 1 Computed",  DATA_FORMAT, "%.1f F", DATA_DOUBLE, temp1_f,
             "temperature_1_C",  "Temperature 1",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp1_c,
             "temperature_2_C",  "Temperature 2",           DATA_FORMAT, "%.1f C", DATA_DOUBLE, temp2_c,
+            "checksum",         "Checksum",                DATA_STRING, checksum_string,
             NULL);
     /* clang-format on */
 
@@ -110,6 +164,7 @@ static char const *const output_fields[] = {
         "temperature_1_F",
         "temperature_1_C",
         "temperature_2_C",
+        "checksum",
         "raw_msg",
         NULL,
 };
