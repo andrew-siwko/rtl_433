@@ -41,3 +41,9 @@ cmake-build-debug/
 
 # Dynamically generated files
 include/version.h
+
+# CI build number written by Jenkins
+BUILD_NUMBER
+.vscode/settings.json
+.gitignore
+
